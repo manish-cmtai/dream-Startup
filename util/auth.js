@@ -1,10 +1,10 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 // Generate JWT token
 export const generateToken = (payload) => {
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
 
@@ -28,34 +28,36 @@ export const comparePassword = async (password, hashedPassword) => {
 export const createCookieOptions = () => {
   return {
     expires: new Date(
-      Date.now() + (process.env.JWT_COOKIE_EXPIRES_IN || 7) * 24 * 60 * 60 * 1000
+      Date.now() +
+        (process.env.JWT_COOKIE_EXPIRES_IN || 7) * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
   };
 };
 
 // Send token response
 export const sendTokenResponse = (user, statusCode, res) => {
-  const token = generateToken({ 
-    uid: user.uid, 
-    email: user.email, 
-    role: user.role 
+  const userId = user.uid || user.email; // ✅ ensure uid fallback
+  const token = generateToken({
+    uid: userId,
+    email: user.email,
+    role: user.role,
   });
 
   const cookieOptions = createCookieOptions();
 
   res
     .status(statusCode)
-    .cookie('token', token, cookieOptions)
+    .cookie("token", token, cookieOptions)
     .json({
       success: true,
       token,
       user: {
-        uid: user.uid,
+        uid: userId,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
 };

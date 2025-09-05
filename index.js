@@ -27,11 +27,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // Parse cookies
 
 // Routes
-app.use('/api/services', servicesRoutes);
-app.use('/api/contact', contactRoutes);
-app.use('/api/training', trainingRoutes);
-app.use('/api/blog', blogRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/v1/services', servicesRoutes);
+app.use('/v1/contact', contactRoutes);
+app.use('/v1/training', trainingRoutes);
+app.use('/v1/blog', blogRoutes);
+app.use('/v1/auth', authRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
