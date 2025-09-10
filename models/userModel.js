@@ -1,6 +1,5 @@
 class User {
   constructor(data) {
-    this.uid = data.uid || data.email;
     this.name = data.name;
     this.phone = data.phone;
     this.email = data.email;

@@ -36,6 +36,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+
 // Get single training (public)
 router.get('/:id', async (req, res) => {
   try {
@@ -49,13 +50,14 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
 // Create training content
 router.post('/', authenticate, checkPermission('training:create'), async (req, res) => {
   try {
     const training = new Training(req.body);
     training.validate();
 
-  const docRef = await adminDb.collection('training').add({ ...training, createdBy: req.user.uid, timestamp: new Date() });
+  const docRef = await adminDb.collection('training').add({ ...training, createdBy: req.user.email, timestamp: new Date() });
   res.status(201).json({ id: docRef.id, message: 'Training content created successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -68,7 +70,7 @@ router.put('/:id', authenticate, checkPermission('training:update'), async (req,
     const training = new Training(req.body);
     training.validate();
 
-  await adminDb.collection('training').doc(req.params.id).update({ ...training, updatedBy: req.user.uid, updatedAt: new Date() });
+  await adminDb.collection('training').doc(req.params.id).update({ ...training, updatedBy: req.user.email, updatedAt: new Date() });
 
     res.json({ message: 'Training content updated successfully' });
   } catch (error) {
@@ -79,7 +81,7 @@ router.put('/:id', authenticate, checkPermission('training:update'), async (req,
 // Delete training (soft delete)
 router.delete('/:id', authenticate, checkPermission('training:delete'), async (req, res) => {
   try {
-  await adminDb.collection('training').doc(req.params.id).update({ isActive: false, deletedBy: req.user.uid, deletedAt: new Date() });
+  await adminDb.collection('training').doc(req.params.id).update({ isActive: false, deletedBy: req.user.email, deletedAt: new Date() });
 
     res.json({ message: 'Training content deleted successfully' });
   } catch (error) {

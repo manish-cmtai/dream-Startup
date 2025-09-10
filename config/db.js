@@ -1,47 +1,48 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
 
-dotenv.config(); // Load environment variables
+dotenv.config();
 
-// Your web app's Firebase configuration from environment variables
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID
-};
+let adminDb, adminStorage;
 
-// Initialize Firebase once
-const app = initializeApp(firebaseConfig);
+try {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is missing');
+  }
 
-// Initialize Firestore
-const db = getFirestore(app);
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  
+  // Fix escaped newlines in private key
+  if (serviceAccount && serviceAccount.private_key && serviceAccount.private_key.includes('\\n')) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+  }
+  
+  // Validate service account
+  console.log('🔑 Service Account Info:');
+  console.log('- Project ID from SA:', serviceAccount.project_id);
+  console.log('- Client Email:', serviceAccount.client_email);
 
-// Firebase Admin SDK - Parse service account from environment variable
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  // Initialize Firebase Admin (check if already initialized)
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: serviceAccount.project_id, // Explicitly set project ID
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+    });
+    console.log('✅ Firebase Admin initialized');
+  }
 
-// Some deployment environments escape newlines in the private key. Ensure real newlines.
-if (serviceAccount && serviceAccount.private_key && serviceAccount.private_key.includes('\\n')) {
-  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+  // Initialize Admin services
+  adminDb = admin.firestore();
+  adminStorage = admin.storage();
+  
+  console.log('✅ Admin Firestore initialized');
+  console.log('✅ Admin Storage initialized');
+
+} catch (error) {
+  console.error('❌ Firebase Admin initialization error:', error.message);
+  console.error('Stack:', error.stack);
+  process.exit(1);
 }
 
-// Initialize Firebase Admin (check if already initialized)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET // Using the storage bucket from environment variables
-  });
-}
-
-// Initialize Admin Storage
-const adminStorage = admin.storage();
-
-// Initialize Admin Firestore (server-side)
-const adminDb = admin.firestore();
-
-export { app, db, adminStorage, adminDb };
+export { admin, adminDb, adminStorage };

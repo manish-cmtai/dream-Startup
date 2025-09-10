@@ -61,7 +61,7 @@ router.post('/', authenticate, checkPermission('blog:create'), async (req, res) 
     const blog = new Blog(req.body);
     blog.validate();
 
-  const docRef = await adminDb.collection('blogs').add({ ...blog, createdBy: req.user.uid, timestamp: new Date() });
+  const docRef = await adminDb.collection('blogs').add({ ...blog, createdBy: req.user.email, timestamp: new Date() });
   res.status(201).json({ id: docRef.id, message: 'Blog post created successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -74,7 +74,7 @@ router.put('/:id',authenticate, checkPermission('blog:update'), async (req, res)
     const blog = new Blog(req.body);
     blog.validate();
 
-  await adminDb.collection('blogs').doc(req.params.id).update({ ...blog, updatedBy: req.user.uid, updatedAt: new Date() });
+  await adminDb.collection('blogs').doc(req.params.id).update({ ...blog, updatedBy: req.user.email, updatedAt: new Date() });
 
     res.json({ message: 'Blog post updated successfully' });
   } catch (error) {
