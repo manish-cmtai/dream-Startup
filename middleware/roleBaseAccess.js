@@ -90,7 +90,7 @@ export const authenticate = async (req, res, next) => {
     req.user = {
       uid: userId,
       email: decoded.email,
-      role: userData.role || ROLES.USER,
+      role: (userData.role || ROLES.USER).toLowerCase(),
       ...userData,
     };
 
@@ -133,7 +133,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
     req.user = {
       uid: userId,
       email: decodedToken.email,
-      role: userSnap.data().role || ROLES.USER,
+      role: (userSnap.data().role || ROLES.USER).toLowerCase(),
     };
 
     next();
@@ -167,7 +167,7 @@ export const optionalAuth = async (req, res, next) => {
           req.user = {
             uid: userId,
             email: decoded.email,
-            role: userSnap.data().role || ROLES.USER,
+            role: (userSnap.data().role || ROLES.USER).toLowerCase(),
             ...userSnap.data(),
           };
         }
