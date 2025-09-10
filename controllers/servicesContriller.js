@@ -1,40 +1,69 @@
 import { adminDb } from '../config/db.js';
 import Service from '../models/serviceModel.js';
 
-
 export const getServices = async (req, res) => {
   try {
     const { category, tags, limit: limitParam = 10, page = 1 } = req.query;
+    const limit = parseInt(limitParam);
+    const currentPage = parseInt(page);
+
     let queryRef = adminDb.collection('services');
 
-    // Apply filters based on query params
+    // Build constraints array for Firebase queries
     if (category) {
       queryRef = queryRef.where('category', '==', category);
     }
-
     if (tags) {
       const tagArray = tags.split(',');
       queryRef = queryRef.where('tags', 'array-contains-any', tagArray);
     }
 
-    // Apply sorting and limit
-    queryRef = queryRef.orderBy('timestamp', 'desc').limit(parseInt(limitParam));
+    // Get total count for pagination meta
+    const totalSnapshot = await queryRef.get();
+    const totalCount = totalSnapshot.size;
 
-    // Fetch documents
-    const querySnapshot = await queryRef.get();
-    const services = [];
-    querySnapshot.forEach((d) => services.push({ id: d.id, ...d.data() }));
+    // Apply ordering and limit
+    queryRef = queryRef.orderBy('timestamp', 'desc');
+
+    // Firestore does NOT support offset(), so we manually calculate offset
+    // WARNING: Offset makes queries less performant on large data sets
+    const offset = (currentPage - 1) * limit;
+
+    let results = [];
+
+    if (offset > 0) {
+      // Fetch cursor document for startAfter
+      const offsetQuery = queryRef.limit(offset);
+      const offsetSnapshot = await offsetQuery.get();
+      if (!offsetSnapshot.empty) {
+        const lastDoc = offsetSnapshot.docs[offsetSnapshot.docs.length - 1];
+        queryRef = queryRef.startAfter(lastDoc);
+      }
+    }
+
+    queryRef = queryRef.limit(limit);
+
+    const snapshot = await queryRef.get();
+    snapshot.forEach(doc => {
+      results.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Determine if there is a next page
+    const hasNextPage = (currentPage * limit) < totalCount;
 
     res.json({
-      services,
-      page: parseInt(page),
-      limit: parseInt(limitParam),
-      total: services.length
+      services: results,
+      page: currentPage,
+      limit,
+      totalCount,
+      hasNextPage
     });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 export const getServicesById= async (req, res) => {
   try {
     const docSnap = await adminDb.collection('services').doc(req.params.id).get();
