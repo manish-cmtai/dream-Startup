@@ -11,7 +11,10 @@ router.post('/', async (req, res) => {
     const contact = new Contact(req.body);
     contact.validate();
 
-    const docRef = await adminDb.collection('contacts').add({ ...contact.toObject(), timestamp: new Date() });
+    const docRef = await adminDb.collection('contacts').add({ 
+      ...contact.toObject(), 
+      timestamp: new Date() 
+    });
     
     res.status(201).json({ 
       id: docRef.id, 
@@ -25,48 +28,82 @@ router.post('/', async (req, res) => {
 // Get contacts with pagination and filters (admin only)
 router.get('/', authenticate, checkPermission('contact:read'), async (req, res) => {
   try {
-    const { status, limit = 10, pageToken } = req.query;
-    const pageSize = parseInt(limit, 10) || 10;
+    const { 
+      status, 
+      search, 
+      limit: limitParam = 10, 
+      page = 1 
+    } = req.query;
+    
+    const limit = parseInt(limitParam);
+    const currentPage = parseInt(page);
 
-    let queryRef = adminDb.collection('contacts').orderBy('timestamp', 'desc');
+    let queryRef = adminDb.collection('contacts');
 
+    // Build constraints for Firebase queries
     if (status) {
       queryRef = queryRef.where('status', '==', status);
     }
 
-    if (pageToken) {
-      // Get the document snapshot for the pageToken cursor
-      const snapshotForToken = await adminDb.collection('contacts').doc(pageToken).get();
-      if (!snapshotForToken.exists) {
-        return res.status(400).json({ error: 'Invalid page token' });
+    let results = [];
+    const snapshot = await queryRef.orderBy('timestamp', 'desc').get();
+    
+    snapshot.forEach((doc) => {
+      const data = { id: doc.id, ...doc.data() };
+
+      // Apply search filter if provided
+      if (search) {
+        const searchLower = search.toLowerCase();
+        const matchesName = data.name?.toLowerCase().includes(searchLower);
+        const matchesEmail = data.email?.toLowerCase().includes(searchLower);
+        const matchesPhone = data.phoneNumber?.toLowerCase().includes(searchLower);
+        const matchesMessage = data.message?.toLowerCase().includes(searchLower);
+        
+        if (matchesName || matchesEmail || matchesPhone || matchesMessage) {
+          results.push(data);
+        }
+      } else {
+        results.push(data);
       }
-      queryRef = queryRef.startAfter(snapshotForToken);
-    }
+    });
 
-    // Limit the results to pageSize
-    const querySnapshot = await queryRef.limit(pageSize).get();
-
-    const contacts = [];
-    querySnapshot.forEach(doc => contacts.push({ id: doc.id, ...doc.data() }));
-
-    // Determine nextPageToken
-    let nextPageToken = null;
-    if (contacts.length === pageSize) {
-      nextPageToken = querySnapshot.docs[contacts.length - 1].id;
-    }
+    // Pagination logic
+    const totalCount = results.length;
+    const offset = (currentPage - 1) * limit;
+    const paginatedResults = results.slice(offset, offset + limit);
 
     res.json({
-      contacts,
-      limit: pageSize,
-      nextPageToken
+      contacts: paginatedResults,
+      pagination: {
+        page: currentPage,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNextPage: currentPage * limit < totalCount,
+      },
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// Get single contact by ID (admin only)
+router.get('/:id', authenticate, checkPermission('contact:read'), async (req, res) => {
+  try {
+    const docSnap = await adminDb.collection('contacts').doc(req.params.id).get();
+    
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: 'Contact not found' });
+    }
+
+    res.json({ id: docSnap.id, ...docSnap.data() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Update contact status
-router.patch('/:id/status', authenticate, checkPermission('contact:read'), async (req, res) => {
+router.patch('/:id/status', authenticate, checkPermission('contact:update'), async (req, res) => {
   try {
     const { status } = req.body;
     const validStatuses = ['pending', 'in_progress', 'resolved', 'closed'];
@@ -82,6 +119,16 @@ router.patch('/:id/status', authenticate, checkPermission('contact:read'), async
     });
 
     res.json({ message: 'Contact status updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete contact (admin only)
+router.delete('/:id', authenticate, checkPermission('contact:delete'), async (req, res) => {
+  try {
+    await adminDb.collection('contacts').doc(req.params.id).delete();
+    res.json({ message: 'Contact deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
