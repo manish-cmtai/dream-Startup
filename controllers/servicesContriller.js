@@ -1,109 +1,114 @@
-import { adminDb } from '../config/db.js';
-import Service from '../models/serviceModel.js';
+import { adminDb } from "../config/db.js";
+import Service from "../models/serviceModel.js";
 
 export const getServices = async (req, res) => {
   try {
-    const { category, tags, limit: limitParam = 10, page = 1 } = req.query;
+    const { category, tags, search, limit: limitParam = 10, page = 1 } = req.query;
     const limit = parseInt(limitParam);
     const currentPage = parseInt(page);
 
-    let queryRef = adminDb.collection('services');
+    let queryRef = adminDb.collection("services");
 
     // Build constraints array for Firebase queries
     if (category) {
-      queryRef = queryRef.where('category', '==', category);
+      queryRef = queryRef.where("category", "==", category);
     }
     if (tags) {
-      const tagArray = tags.split(',');
-      queryRef = queryRef.where('tags', 'array-contains-any', tagArray);
+      const tagArray = tags.split(",");
+      queryRef = queryRef.where("tags", "array-contains-any", tagArray);
     }
-
-    // Get total count for pagination meta
-    const totalSnapshot = await queryRef.get();
-    const totalCount = totalSnapshot.size;
-
-    // Apply ordering and limit
-    queryRef = queryRef.orderBy('timestamp', 'desc');
-
-    // Firestore does NOT support offset(), so we manually calculate offset
-    // WARNING: Offset makes queries less performant on large data sets
-    const offset = (currentPage - 1) * limit;
 
     let results = [];
+    const snapshot = await queryRef.orderBy("timestamp", "desc").get();
+    
+    snapshot.forEach((doc) => {
+      const data = { id: doc.id, ...doc.data() };
 
-    if (offset > 0) {
-      // Fetch cursor document for startAfter
-      const offsetQuery = queryRef.limit(offset);
-      const offsetSnapshot = await offsetQuery.get();
-      if (!offsetSnapshot.empty) {
-        const lastDoc = offsetSnapshot.docs[offsetSnapshot.docs.length - 1];
-        queryRef = queryRef.startAfter(lastDoc);
+          // Apply search filter if provided
+      if (search) {
+        const searchLower = search.toLowerCase();
+        const matchesName = data.name?.toLowerCase().includes(searchLower);
+        const matchesDescription = data.shortDescription?.toLowerCase().includes(searchLower);
+        const matchesCategory = data.category?.toLowerCase().includes(searchLower);
+        
+        if (matchesName || matchesDescription || matchesCategory) {
+          results.push(data);
+        }
+      } else {
+        results.push(data);
       }
-    }
-
-    queryRef = queryRef.limit(limit);
-
-    const snapshot = await queryRef.get();
-    snapshot.forEach(doc => {
-      results.push({ id: doc.id, ...doc.data() });
     });
 
     // Determine if there is a next page
-    const hasNextPage = (currentPage * limit) < totalCount;
+    const totalCount = results.length;
+    const offset = (currentPage - 1) * limit;
+    const paginatedResults = results.slice(offset, offset + limit);
 
     res.json({
-      services: results,
-      page: currentPage,
-      limit,
-      totalCount,
-      hasNextPage
+      services: paginatedResults,
+      pagination: {
+        page: currentPage,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNextPage: currentPage * limit < totalCount,
+      },
     });
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const getServicesById= async (req, res) => {
+export const getServicesById = async (req, res) => {
   try {
-    const docSnap = await adminDb.collection('services').doc(req.params.id).get();
+    const docSnap = await adminDb
+      .collection("services")
+      .doc(req.params.id)
+      .get();
     if (!docSnap.exists) {
-      return res.status(404).json({ error: 'Service not found' });
+      return res.status(404).json({ error: "Service not found" });
     }
     res.json({ id: docSnap.id, ...docSnap.data() });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
+};
 
-export const addService=async (req, res) => {
+export const addService = async (req, res) => {
   try {
     const service = new Service(req.body);
     service.validate();
 
-  const docRef = await adminDb.collection('services').add({ ...service, createdBy: req.user.email, timestamp: new Date() });
-  res.status(201).json({ id: docRef.id, message: 'Service created successfully' });
+    const docRef = await adminDb
+      .collection("services")
+      .add({ ...service, createdBy: req.user.email, timestamp: new Date() });
+    res
+      .status(201)
+      .json({ id: docRef.id, message: "Service created successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-}
-export const updateService=async (req, res) => {
+};
+export const updateService = async (req, res) => {
   try {
     const service = new Service(req.body);
     service.validate();
 
-  await adminDb.collection('services').doc(req.params.id).update({ ...service, updatedBy: req.user.uid, updatedAt: new Date() });
+    await adminDb
+      .collection("services")
+      .doc(req.params.id)
+      .update({ ...service, updatedBy: req.user.uid, updatedAt: new Date() });
 
-    res.json({ message: 'Service updated successfully' });
+    res.json({ message: "Service updated successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-}
-export const deleteSrevice=async (req, res) => {
+};
+export const deleteSrevice = async (req, res) => {
   try {
-  await adminDb.collection('services').doc(req.params.id).delete();
-    res.json({ message: 'Service deleted successfully' });
+    await adminDb.collection("services").doc(req.params.id).delete();
+    res.json({ message: "Service deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
+};
