@@ -203,7 +203,7 @@ router.post('/', authenticate, checkPermission('blog:create'), async (req, res) 
     blog.validate();
 
     const docRef = await adminDb.collection('blogs').add({ 
-      ...blog.toObject(), 
+      ...blog, 
       createdBy: req.user.uid,
       createdByEmail: req.user.email, 
       timestamp: new Date() 
@@ -231,7 +231,7 @@ router.put('/:id', authenticate, checkPermission('blog:update'), async (req, res
     blog.validate();
 
     await adminDb.collection('blogs').doc(req.params.id).update({ 
-      ...blog.toObject(), 
+      ...blog, 
       updatedBy: req.user.uid,
       updatedByEmail: req.user.email, 
       updatedAt: new Date() 

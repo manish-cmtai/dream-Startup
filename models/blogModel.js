@@ -5,6 +5,7 @@ class Blog {
     this.author = data.author;
     this.category = data.category;
     this.tags = data.tags || [];
+    this.slug = data.slug;
     this.image = data.image;
     this.seo = data.seo || {};
     this.timestamp = data.timestamp || new Date();
@@ -12,8 +13,8 @@ class Blog {
   }
 
   validate() {
-    if (!this.title || !this.content || !this.author) {
-      throw new Error('Title, content, and author are required');
+    if (!this.title || !this.content || !this.author || !this.slug) {
+      throw new Error('Title, content, slug and author are required');
     }
   }
 }

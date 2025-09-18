@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'], // Add your frontend URLs
+  origin: ['http://localhost:3000', 'http://localhost:3001','https://dreams-startup.vercel.app' ], // Add your frontend URLs
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']

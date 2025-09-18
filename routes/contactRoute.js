@@ -12,7 +12,7 @@ router.post('/', async (req, res) => {
     contact.validate();
 
     const docRef = await adminDb.collection('contacts').add({ 
-      ...contact.toObject(), 
+      ...contact, 
       timestamp: new Date() 
     });
     
