@@ -192,7 +192,7 @@ router.post('/', authenticate, checkPermission('training:create'), async (req, r
 
     const docRef = await adminDb.collection('training').add({ 
       ...training, 
-      createdBy: req.user.uid,
+      createdBy: req.user.email,
       createdByEmail: req.user.email, 
       timestamp: new Date() 
     });
@@ -220,7 +220,7 @@ router.put('/:id', authenticate, checkPermission('training:update'), async (req,
 
     await adminDb.collection('training').doc(req.params.id).update({ 
       ...training, 
-      updatedBy: req.user.uid,
+      updatedBy: req.user.email,
       updatedByEmail: req.user.email, 
       updatedAt: new Date() 
     });
@@ -242,7 +242,7 @@ router.patch('/:id/status', authenticate, checkPermission('training:update'), as
 
     await adminDb.collection('training').doc(req.params.id).update({
       isActive,
-      updatedBy: req.user.uid,
+      updatedBy: req.user.email,
       updatedAt: new Date(),
       ...(!isActive && { deactivatedAt: new Date() }),
       ...(isActive && { reactivatedAt: new Date() })
@@ -267,7 +267,7 @@ router.delete('/:id', authenticate, checkPermission('training:delete'), async (r
 
     await adminDb.collection('training').doc(req.params.id).update({ 
       isActive: false, 
-      deletedBy: req.user.uid,
+      deletedBy: req.user.email,
       deletedByEmail: req.user.email, 
       deletedAt: new Date() 
     });

@@ -3,7 +3,13 @@ import Service from "../models/serviceModel.js";
 
 export const getServices = async (req, res) => {
   try {
-    const { category, tags, search, limit: limitParam = 10, page = 1 } = req.query;
+    const {
+      category,
+      tags,
+      search,
+      limit: limitParam = 10,
+      page = 1,
+    } = req.query;
     const limit = parseInt(limitParam);
     const currentPage = parseInt(page);
 
@@ -20,17 +26,21 @@ export const getServices = async (req, res) => {
 
     let results = [];
     const snapshot = await queryRef.orderBy("timestamp", "desc").get();
-    
+
     snapshot.forEach((doc) => {
       const data = { id: doc.id, ...doc.data() };
 
-          // Apply search filter if provided
+      // Apply search filter if provided
       if (search) {
         const searchLower = search.toLowerCase();
         const matchesName = data.name?.toLowerCase().includes(searchLower);
-        const matchesDescription = data.shortDescription?.toLowerCase().includes(searchLower);
-        const matchesCategory = data.category?.toLowerCase().includes(searchLower);
-        
+        const matchesDescription = data.shortDescription
+          ?.toLowerCase()
+          .includes(searchLower);
+        const matchesCategory = data.category
+          ?.toLowerCase()
+          .includes(searchLower);
+
         if (matchesName || matchesDescription || matchesCategory) {
           results.push(data);
         }
@@ -97,7 +107,7 @@ export const updateService = async (req, res) => {
     await adminDb
       .collection("services")
       .doc(req.params.id)
-      .update({ ...service, updatedBy: req.user.uid, updatedAt: new Date() });
+      .update({ ...service, updatedBy: req.user.email, updatedAt: new Date() });
 
     res.json({ message: "Service updated successfully" });
   } catch (error) {

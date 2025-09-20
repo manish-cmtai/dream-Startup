@@ -5,7 +5,7 @@ class Training {
     this.ytLink = data.ytLink;
     this.seo = data.seo || {};
     this.category = data.category;
-    this.level = data.level; // beginner, intermediate, advanced
+    this.level = data.level; 
     this.duration = data.duration;
     this.timestamp = data.timestamp || new Date();
     this.isActive = data.isActive !== false;

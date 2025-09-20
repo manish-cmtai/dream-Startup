@@ -114,7 +114,7 @@ router.patch('/:id/status', authenticate, checkPermission('contact:update'), asy
 
     await adminDb.collection('contacts').doc(req.params.id).update({
       status,
-      updatedBy: req.user.uid,
+      updatedBy: req.user.email,
       updatedAt: new Date()
     });
 

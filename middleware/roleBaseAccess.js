@@ -12,10 +12,11 @@ export const ROLES = {
 export const PERMISSIONS = {
   [ROLES.SUPER_ADMIN]: ['*'],
   [ROLES.ADMIN]: [
-    'services:create', 'services:read', 'services:update', 'services:delete',
-    'blog:create', 'blog:read', 'blog:update', 'blog:delete',
-    'training:create', 'training:read', 'training:update', 'training:delete',
-    'contact:read', 'contact:update', 'contact:delete',
+    // 'services:create', 'services:read', 'services:update', 'services:delete',
+    // 'blog:create', 'blog:read', 'blog:update', 'blog:delete',
+    // 'training:create', 'training:read', 'training:update', 'training:delete',
+    // 'contact:read', 'contact:update', 'contact:delete',
+    '*'
  
   ],
   [ROLES.EDITOR]: [

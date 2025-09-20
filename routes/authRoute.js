@@ -11,47 +11,47 @@ import User from '../models/userModel.js';
 const router = express.Router();
 
 // Register user
-// router.post('/create', async (req, res) => {
-//   try {
-//     const { name, phone, email, password, role = ROLES.USER } = req.body;
+router.post('/create', async (req, res) => {
+  try {
+    const { name, phone, email, password, role = ROLES.USER } = req.body;
 
-//     console.log('📝 Registration attempt for:', email);
+    console.log('📝 Registration attempt for:', email);
 
-//     // Check if user already exists using Admin SDK
-//     const userDoc = await adminDb.collection('users').doc(email).get();
+    // Check if user already exists using Admin SDK
+    const userDoc = await adminDb.collection('users').doc(email).get();
     
-//     if (userDoc.exists) {
-//       return res.status(400).json({ error: 'User already exists' });
-//     }
+    if (userDoc.exists) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
 
-//     // Create and validate user
-//     const userData = {
-//       name,
-//       phone,
-//       email,
-//       password: await hashPassword(password),
-//       role,
-//     };
+    // Create and validate user
+    const userData = {
+      name,
+      phone,
+      email,
+      password: await hashPassword(password),
+      role,
+    };
 
-//     const user = new User(userData);
-//     user.validate();
+    const user = new User(userData);
+    user.validate();
 
-//     // Save using Admin SDK
-//     await adminDb.collection('users').doc(email).set({
-//       ...user,
-//       createdAt: admin.firestore.Timestamp.now(),
-//       updatedAt: admin.firestore.Timestamp.now()
-//     });
+    // Save using Admin SDK
+    await adminDb.collection('users').doc(email).set({
+      ...user,
+      createdAt: admin.firestore.Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now()
+    });
 
-//     console.log('✅ User registered successfully:', email);
+    console.log('✅ User registered successfully:', email);
     
-//     // Send token response
-//     sendTokenResponse(user, 201, res);
-//   } catch (error) {
-//     console.error('❌ Registration error:', error);
-//     res.status(400).json({ error: error.message });
-//   }
-// });
+    // Send token response
+    sendTokenResponse(user, 201, res);
+  } catch (error) {
+    console.error('❌ Registration error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
 
 // Login
 router.post('/login', async (req, res) => {
@@ -227,7 +227,7 @@ router.patch('/update-role/:uid', authenticate, checkPermission('admin:update'),
     await adminDb.collection('users').doc(uid).update({
       role,
       updatedAt: admin.firestore.Timestamp.now(),
-      updatedBy: req.user.uid
+      updatedBy: req.user.email
     });
 
     console.log('✅ Role updated for user:', uid, 'to:', role);
