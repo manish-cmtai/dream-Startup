@@ -39,7 +39,6 @@ export const createCookieOptions = () => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    domain: isProduction ? process.env.COOKIE_DOMAIN : undefined,
   };
 };
 
